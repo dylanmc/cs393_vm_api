@@ -21,7 +21,7 @@ impl FileDataSource {
             Ok(FileDataSource {
                 file_handle: f,
                 name: name.to_string(),
-            })    
+            })
         } else {
             Err("couldn't open {name}")
         }
