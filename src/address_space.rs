@@ -46,7 +46,7 @@ impl AddressSpace {
         offset: usize,
         span: usize,
     ) -> Result<VirtualAddress, &str> {
-        panic!("add mapping not yet implemented!");
+        todo!()
     }
 
     /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
@@ -60,7 +60,7 @@ impl AddressSpace {
         span: usize,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        panic!("add mapping not yet implemented!");
+        todo!()
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
@@ -71,6 +71,6 @@ impl AddressSpace {
         source: &dyn DataSource,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        panic!("remove_mapping not yet implemented!");
+        todo!()
     }
 }
