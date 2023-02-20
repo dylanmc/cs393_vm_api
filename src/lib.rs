@@ -1,7 +1,6 @@
-
 mod address_space;
-mod data_source;
 mod cacher;
+mod data_source;
 
 use address_space::AddressSpace;
 use data_source::FileDataSource;
