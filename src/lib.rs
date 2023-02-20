@@ -28,7 +28,7 @@ mod tests {
         let offset: usize = 0;
         let length: usize = 1;
 
-        data_source.add_map(addr_space, offset, length);
+        addr_space.add_map(data_source, offset, length);
 
         assert_eq!(addr_space.mappings.is_empty(), false);
         assert_eq!(addr_space.mappings.front().source, Some(&data_source));
