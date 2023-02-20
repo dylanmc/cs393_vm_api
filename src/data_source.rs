@@ -3,55 +3,80 @@ use std::fs::File;
 
 pub trait DataSource {
     // constructors are left to each implementation, once you have one, you can:
-    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str>;
-    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str>;
+    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str>;
+    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str>;
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str>;
-    fn add_map(&self, with_flag: Flags, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>;
-    fn del_map(&self, from_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<(), &str>;
+    fn add_map(
+        &self,
+        with_flag: Flags,
+        into_address_space: &mut AddressSpace,
+        offset: usize,
+        length: usize,
+    ) -> Result<usize, &str>;
+    fn del_map(
+        &self,
+        from_address_space: &mut AddressSpace,
+        offset: usize,
+        length: usize,
+    ) -> Result<(), &str>;
 }
 
-enum Flags {
+pub enum Flags {
     // TODO: do we need more flags?
-    read,
-    write,
-    execute,
-    copy_on_write,
-    private,
-    shared
+    Read,
+    Write,
+    Execute,
+    CopyOnWrite,
+    Private,
+    Shared,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct FileDataSource {
     file_handle: File,
     name: String,
 }
 
 impl FileDataSource {
+    /// Create a new `FileDataSource`.
+    ///
+    /// # Errors
+    /// If the file can't be opened.
     pub fn new(name: &str) -> Result<Self, &str> {
-        if let Ok(f) = File::open(name){
-            Ok(FileDataSource {
-                file_handle: f,
+        File::open(name).map_or(Err("couldn't open {name}"), |file_handle| {
+            Ok(Self {
+                file_handle,
                 name: name.to_string(),
             })
-        } else {
-            Err("couldn't open {name}")
-        }
+        })
     }
 }
 
 impl DataSource for FileDataSource {
-    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str> {
+    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str> {
         panic!("not yet done");
     }
-    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str>{
+    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str> {
         panic!("not yet done");
     }
-    fn flush(&self, offset: usize, length: usize) -> Result<(), &str>{
+    fn flush(&self, offset: usize, length: usize) -> Result<(), &str> {
         panic!("not yet done");
     }
-    fn add_map(&self, with_flag: Flags, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>{
+    fn add_map(
+        &self,
+        with_flag: Flags,
+        into_address_space: &mut AddressSpace,
+        offset: usize,
+        length: usize,
+    ) -> Result<usize, &str> {
         panic!("not yet done");
     }
-    fn del_map(&self, from_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<(), &str>{
+    fn del_map(
+        &self,
+        from_address_space: &mut AddressSpace,
+        offset: usize,
+        length: usize,
+    ) -> Result<(), &str> {
         panic!("not yet done");
     }
 }
