@@ -40,9 +40,9 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If the desired mapping is invalid.
-    pub fn add_mapping(
+    pub fn add_mapping<D: DataSource>(
         &self,
-        source: &dyn DataSource,
+        source: &D,
         offset: usize,
         span: usize,
     ) -> Result<VirtualAddress, &str> {
@@ -53,9 +53,9 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If there is insufficient room subsequent to `start`.
-    pub fn add_mapping_at(
+    pub fn add_mapping_at<D: DataSource>(
         &self,
-        source: &dyn DataSource,
+        source: &D,
         offset: usize,
         span: usize,
         start: VirtualAddress,
@@ -64,11 +64,12 @@ impl AddressSpace {
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
+    ///
     /// # Errors
     /// If the mapping could not be removed.
-    pub fn remove_mapping(
+    pub fn remove_mapping<D: DataSource>(
         &self,
-        source: &dyn DataSource,
+        source: &D,
         start: VirtualAddress,
     ) -> Result<(), &str> {
         todo!()
