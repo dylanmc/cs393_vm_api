@@ -6,8 +6,10 @@ pub trait DataSource {
     //
     // TODO: instead of taking a `flagbuilder`, should we turn it into some kind of convenient
     // format?
-    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str>;
-    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str>;
+    //
+    // TODO: add documentation for all these methods
+    fn read(&self, offset: usize, length: usize, buffer: &mut [u8]) -> Result<(), &str>;
+    fn write(&self, offset: usize, length: usize, buffer: &[u8]) -> Result<(), &str>;
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str>;
     fn add_map(
         &self,
@@ -173,10 +175,10 @@ impl FileDataSource {
 }
 
 impl DataSource for FileDataSource {
-    fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str> {
+    fn read(&self, offset: usize, length: usize, buffer: &mut [u8]) -> Result<(), &str> {
         todo!()
     }
-    fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8>) -> Result<(), &str> {
+    fn write(&self, offset: usize, length: usize, buffer: &[u8]) -> Result<(), &str> {
         todo!()
     }
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str> {
