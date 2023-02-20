@@ -39,14 +39,12 @@ pub struct FileDataSource {
 
 impl FileDataSource {
     pub fn new(name: &str) -> Result<Self, &str> {
-        if let Ok(f) = File::open(name) {
-            Ok(FileDataSource {
-                file_handle: f,
+        File::open(name).map_or(Err("couldn't open {name}"), |file_handle| {
+            Ok(Self {
+                file_handle,
                 name: name.to_string(),
             })
-        } else {
-            Err("couldn't open {name}")
-        }
+        })
     }
 }
 
