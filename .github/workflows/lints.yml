@@ -1,0 +1,54 @@
+name: lints
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout source
+        uses: actions/checkout@v2
+
+      - name: install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+
+      - name: run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout source
+        uses: actions/checkout@v2
+
+      - name: install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: run cargo doc
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --all --no-deps
