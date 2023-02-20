@@ -28,8 +28,9 @@ pub struct AddressSpace {
 // from a crate (but remember it needs to be #no_std compatible), or even write your own.
 
 impl AddressSpace {
+    #[must_use]
     pub fn new(name: &str) -> Self {
-        AddressSpace {
+        Self {
             name: name.to_string(),
             mappings: LinkedList::new(),
         }
