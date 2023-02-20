@@ -21,7 +21,7 @@ pub trait DataSource {
     ) -> Result<(), &str>;
 }
 
-enum Flags {
+pub enum Flags {
     // TODO: do we need more flags?
     Read,
     Write,
