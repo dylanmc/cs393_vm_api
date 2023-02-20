@@ -1,6 +1,9 @@
 This is a first whack at defining a medium-level abstraction of an
 address space in Rust.
 
+Here we are in class, making a non-trivial (ha!) modification to the
+repository.
+
 The idea is that other kernel operations use this API to create and
 initialize an address space, that user-space operations can end up
 calling (via a syscall bridge) operations like `add_map` and `flush`
