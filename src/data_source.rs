@@ -31,6 +31,7 @@ pub enum Flags {
     Shared,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct FileDataSource {
     file_handle: File,
     name: String,

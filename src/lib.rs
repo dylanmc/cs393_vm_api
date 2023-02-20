@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 mod address_space;
 mod cacher;
 mod data_source;
