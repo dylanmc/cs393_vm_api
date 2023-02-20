@@ -38,6 +38,10 @@ pub struct FileDataSource {
 }
 
 impl FileDataSource {
+    /// Create a new `FileDataSource`.
+    ///
+    /// # Errors
+    /// If the file can't be opened.
     pub fn new(name: &str) -> Result<Self, &str> {
         File::open(name).map_or(Err("couldn't open {name}"), |file_handle| {
             Ok(Self {

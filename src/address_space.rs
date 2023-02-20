@@ -10,6 +10,8 @@ struct MapEntry {
     offset: usize,
     span: usize,
 }
+
+/// An address space.
 pub struct AddressSpace {
     name: String,
     mappings: LinkedList<MapEntry>, // see below for comments
@@ -33,8 +35,10 @@ impl AddressSpace {
         }
     }
 
-    // add a mapping from DataSource into this AddressSpace
-    // return VirtualAddress, or an error
+    /// Add a mapping from a `DataSource` into this `AddressSpace`.
+    ///
+    /// # Errors
+    /// If the desired mapping is invalid.
     pub fn add_mapping(
         &self,
         source: &dyn DataSource,
@@ -44,8 +48,10 @@ impl AddressSpace {
         panic!("add mapping not yet implemented!");
     }
 
-    // add a mapping from DataSource into this AddressSpace starting at start
-    // returns Ok(), or an error if start + span doesn't have room for this mapping
+    /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
+    ///
+    /// # Errors
+    /// If there is insufficient room subsequent to `start`.
     pub fn add_mapping_at(
         &self,
         source: &dyn DataSource,
@@ -56,7 +62,9 @@ impl AddressSpace {
         panic!("add mapping not yet implemented!");
     }
 
-    // remove the mapping to DataSource that starts at VirtualAddress
+    /// Remove the mapping to `DataSource` that starts at the given address.
+    /// # Errors
+    /// If the mapping could not be removed.
     pub fn remove_mapping(
         &self,
         source: &dyn DataSource,
