@@ -6,8 +6,18 @@ pub trait DataSource {
     fn read(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str>;
     fn write(&self, offset: usize, length: usize, buffer: &mut Vec<u8> ) -> Result<(), &str>;
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str>;
-    fn add_map(&self, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>;
+    fn add_map(&self, with_flag: Flags, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>;
     fn del_map(&self, from_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<(), &str>;
+}
+
+enum Flags {
+    // TODO: do we need more flags?
+    read,
+    write,
+    execute,
+    copy_on_write,
+    private,
+    shared
 }
 
 pub struct FileDataSource {
@@ -38,7 +48,7 @@ impl DataSource for FileDataSource {
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str>{
         panic!("not yet done");
     }
-    fn add_map(&self, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>{
+    fn add_map(&self, with_flag: Flags, into_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<usize, &str>{
         panic!("not yet done");
     }
     fn del_map(&self, from_address_space: &mut AddressSpace, offset: usize, length: usize) -> Result<(), &str>{
