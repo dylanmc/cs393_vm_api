@@ -23,13 +23,14 @@ mod tests {
     fn test_add_mapping() {
         let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Test data source");
-
         let offset: usize = 0;
         let length: usize = 1;
+
         data_source.add_map(addr_space, offset, length);
+
         assert_eq!(addr_space.mappings.is_empty(), false);
         assert_eq!(addr_space.mappings.front().source, Some(&data_source));
-        assert_eq!(addr_space.mappings.front().offset , offset);
+        assert_eq!(addr_space.mappings.front().offset, offset);
         assert_eq!(addr_space.mappings.front().span, length);
     }
 }
