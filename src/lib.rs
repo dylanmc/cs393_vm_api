@@ -5,7 +5,7 @@ mod cacher;
 mod data_source;
 
 pub use address_space::AddressSpace;
-pub use data_source::FileDataSource;
+pub use data_source::{DataSource, FileDataSource, FlagBuilder};
 
 #[cfg(test)]
 mod tests {
