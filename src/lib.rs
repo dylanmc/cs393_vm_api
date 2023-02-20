@@ -2,8 +2,8 @@ mod address_space;
 mod cacher;
 mod data_source;
 
-use address_space::AddressSpace;
-use data_source::FileDataSource;
+pub use address_space::AddressSpace;
+pub use data_source::FileDataSource;
 
 #[cfg(test)]
 mod tests {
