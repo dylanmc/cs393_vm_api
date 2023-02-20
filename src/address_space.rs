@@ -8,11 +8,13 @@ type VirtualAddress = usize;
 struct MapEntry {
     source: Arc<dyn DataSource>,
     offset: usize,
-    span:   usize,
+    span: usize,
 }
+
+/// An address space.
 pub struct AddressSpace {
     name: String,
-    mappings: LinkedList<MapEntry>,  // see below for comments
+    mappings: LinkedList<MapEntry>, // see below for comments
 }
 
 // comments about storing mappings
@@ -26,27 +28,50 @@ pub struct AddressSpace {
 // from a crate (but remember it needs to be #no_std compatible), or even write your own.
 
 impl AddressSpace {
+    #[must_use]
     pub fn new(name: &str) -> Self {
-        AddressSpace {
+        Self {
             name: name.to_string(),
-            mappings : LinkedList::new(),
+            mappings: LinkedList::new(),
         }
     }
 
-    // add a mapping from DataSource into this AddressSpace
-    // return VirtualAddress, or an error
-    pub fn add_mapping(&self, source: &dyn DataSource, offset: usize, span: usize) -> Result<VirtualAddress, &str> {
-        panic!("add mapping not yet implemented!");
+    /// Add a mapping from a `DataSource` into this `AddressSpace`.
+    ///
+    /// # Errors
+    /// If the desired mapping is invalid.
+    pub fn add_mapping<D: DataSource>(
+        &self,
+        source: &D,
+        offset: usize,
+        span: usize,
+    ) -> Result<VirtualAddress, &str> {
+        todo!()
     }
 
-    // add a mapping from DataSource into this AddressSpace starting at start
-    // returns Ok(), or an error if start + span doesn't have room for this mapping
-    pub fn add_mapping_at(&self, source: &dyn DataSource, offset: usize, span: usize, start: VirtualAddress) -> Result<(), &str> {
-        panic!("add mapping not yet implemented!");
+    /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
+    ///
+    /// # Errors
+    /// If there is insufficient room subsequent to `start`.
+    pub fn add_mapping_at<D: DataSource>(
+        &self,
+        source: &D,
+        offset: usize,
+        span: usize,
+        start: VirtualAddress,
+    ) -> Result<(), &str> {
+        todo!()
     }
 
-    // remove the mapping to DataSource that starts at VirtualAddress
-    pub fn remove_mapping(&self, source: &dyn DataSource, start: VirtualAddress) -> Result<(), &str> {
-        panic!("remove_mapping not yet implemented!");
+    /// Remove the mapping to `DataSource` that starts at the given address.
+    ///
+    /// # Errors
+    /// If the mapping could not be removed.
+    pub fn remove_mapping<D: DataSource>(
+        &self,
+        source: &D,
+        start: VirtualAddress,
+    ) -> Result<(), &str> {
+        todo!()
     }
 }

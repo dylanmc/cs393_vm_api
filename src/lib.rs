@@ -1,9 +1,11 @@
+#![allow(dead_code, unused_variables)]
+
 mod address_space;
 mod cacher;
 mod data_source;
 
-use address_space::AddressSpace;
-use data_source::FileDataSource;
+pub use address_space::AddressSpace;
+pub use data_source::{DataSource, FileDataSource, FlagBuilder};
 
 #[cfg(test)]
 mod tests {
