@@ -9,6 +9,7 @@ struct MapEntry {
     source: Arc<dyn DataSource>,
     offset: usize,
     span: usize,
+    addr: usize,
 }
 
 /// An address space.
