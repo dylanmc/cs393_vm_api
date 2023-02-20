@@ -23,12 +23,12 @@ pub trait DataSource {
 
 enum Flags {
     // TODO: do we need more flags?
-    read,
-    write,
-    execute,
-    copy_on_write,
-    private,
-    shared,
+    Read,
+    Write,
+    Execute,
+    CopyOnWrite,
+    Private,
+    Shared,
 }
 
 pub struct FileDataSource {
