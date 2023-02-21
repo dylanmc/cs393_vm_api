@@ -9,6 +9,7 @@ struct MapEntry {
     source: Arc<dyn DataSource>,
     offset: usize,
     span: usize,
+    addr: usize,
 }
 
 /// An address space.
@@ -28,6 +29,10 @@ pub struct AddressSpace {
 // from a crate (but remember it needs to be #no_std compatible), or even write your own.
 
 impl AddressSpace {
+    pub fn mappings_is_empty(self) -> bool {
+        self.mappings.is_empty()
+    }
+
     #[must_use]
     pub fn new(name: &str) -> Self {
         Self {
