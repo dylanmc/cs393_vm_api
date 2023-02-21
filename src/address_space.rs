@@ -1,6 +1,7 @@
 use std::collections::LinkedList;
 use std::sync::Arc;
 
+use crate::FlagBuilder;
 use crate::data_source::DataSource;
 
 type VirtualAddress = usize;
@@ -27,6 +28,7 @@ pub struct AddressSpace {
 
 // So, feel free to come up with a different structure, either a classic Rust collection,
 // from a crate (but remember it needs to be #no_std compatible), or even write your own.
+// See this ticket from Riley: https://github.com/dylanmc/cs393_vm_api/issues/10
 
 impl AddressSpace {
     #[must_use]
@@ -74,5 +76,19 @@ impl AddressSpace {
         start: VirtualAddress,
     ) -> Result<(), &str> {
         todo!()
+    }
+
+    /// Look up the DataSource and offset within that DataSource for a
+    /// VirtualAddress / AccessType in this AddressSpace
+    /// 
+    /// # Errors
+    /// If this VirtualAddress does not have a valid mapping in &self,
+    /// or if this AccessType is not permitted by the mapping
+    pub fn get_source_for_addr<D: DataSource>(
+        &self,
+        addr: VirtualAddress,
+        access_type: FlagBuilder
+    ) -> Result<(&D, usize), &str> {
+        todo!();
     }
 }
