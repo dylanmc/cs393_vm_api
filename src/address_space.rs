@@ -79,14 +79,14 @@ impl AddressSpace {
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
+        access_type: FlagBuilder,
     ) -> Result<(&D, usize), &str> {
         todo!();
     }
@@ -218,4 +218,3 @@ impl FlagBuilder {
         }
     }
 }
-

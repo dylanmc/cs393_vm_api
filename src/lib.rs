@@ -28,7 +28,9 @@ mod tests {
         let offset: usize = 0;
         let length: usize = 1;
 
-        let addr = addr_space.add_mapping(&data_source, offset, length).unwrap();
+        let addr = addr_space
+            .add_mapping(&data_source, offset, length)
+            .unwrap();
         assert!(addr != 0);
 
         // we should move these tests into addr_space, since they access non-public internals of the structure:
