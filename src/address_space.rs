@@ -65,11 +65,19 @@ impl AddressSpace {
         todo!()
     }
 
+    /// Remove the mapping to `DataSource` from this `AddressSpace`
+    ///
+    /// # Errors
+    /// If the mapping could not be removed.
+    pub fn remove_mapping<D: DataSource>(&self, source: &D) -> Result<(), &str> {
+        todo!()
+    }
+
     /// Remove the mapping to `DataSource` that starts at the given address.
     ///
     /// # Errors
     /// If the mapping could not be removed.
-    pub fn remove_mapping<D: DataSource>(
+    pub fn remove_mapping_at<D: DataSource>(
         &self,
         source: &D,
         start: VirtualAddress,
