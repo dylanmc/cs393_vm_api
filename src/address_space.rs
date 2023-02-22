@@ -65,11 +65,20 @@ impl AddressSpace {
         todo!()
     }
 
+    /// Remove the mapping to `DataSource` from this `AddressSpace`
+    /// Figure out corresponding virtual address in body of this function
+    ///
+    /// # Errors
+    /// If the mapping could not be removed.
+    pub fn remove_mapping<D: DataSource>(&self, source: &D) -> Result<(), &str> {
+        todo!()
+    }
+
     /// Remove the mapping to `DataSource` that starts at the given address.
     ///
     /// # Errors
     /// If the mapping could not be removed.
-    pub fn remove_mapping<D: DataSource>(
+    pub fn remove_mapping_at<D: DataSource>(
         &self,
         source: &D,
         start: VirtualAddress,
@@ -79,14 +88,14 @@ impl AddressSpace {
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
+        access_type: FlagBuilder,
     ) -> Result<(&D, usize), &str> {
         todo!();
     }
@@ -96,7 +105,7 @@ impl AddressSpace {
 ///
 /// We recommend using this builder type as follows:
 /// ```
-/// # use reedos_address_space::FlagBuilder;
+///
 /// let flags = FlagBuilder::new()
 ///     .toggle_read()
 ///     .toggle_write();
@@ -194,7 +203,7 @@ impl FlagBuilder {
     /// You can think of this as `self &! other` on each field.
     ///
     /// ```
-    /// # use reedos_address_space::FlagBuilder;
+    ///
     /// let read_execute = FlagBuilder::read().toggle_execute();
     /// let execute = FlagBuilder::execute();
     /// let new = read_execute.but_not(execute);
@@ -218,4 +227,3 @@ impl FlagBuilder {
         }
     }
 }
-
