@@ -66,6 +66,7 @@ impl AddressSpace {
     }
 
     /// Remove the mapping to `DataSource` from this `AddressSpace`
+    /// Figure out corresponding virtual address in body of this function
     ///
     /// # Errors
     /// If the mapping could not be removed.
