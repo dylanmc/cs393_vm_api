@@ -29,16 +29,17 @@ mod tests {
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
+        let read_flags = FlagBuilder::new().toggle_read();
 
         let ds_arc = Arc::new(data_source);
 
         let addr = addr_space
-            .add_mapping(ds_arc.clone(), offset, length)
+            .add_mapping(ds_arc.clone(), offset, length, read_flags)
             .unwrap();
         assert!(addr != 0);
 
         let addr2 = addr_space
-            .add_mapping(ds_arc.clone(), address_space::PAGE_SIZE, 0)
+            .add_mapping(ds_arc.clone(), address_space::PAGE_SIZE, 0, read_flags)
             .unwrap();
         assert!(addr2 != 0);
         assert!(addr2 != addr);
