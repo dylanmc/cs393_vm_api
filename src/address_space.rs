@@ -1,7 +1,9 @@
-use std::collections::LinkedList;
 use std::sync::Arc;
 
 use crate::data_source::DataSource;
+
+pub const PAGE_SIZE: usize = 4096;
+pub const VADDR_MAX: usize = (1 << 38) - 1;
 
 type VirtualAddress = usize;
 
@@ -12,10 +14,22 @@ struct MapEntry {
     addr: usize,
 }
 
+impl MapEntry {
+    #[must_use] // <- not using return value of "new" doesn't make sense, so warn
+    pub fn new(source: Arc<dyn DataSource>, offset: usize, span: usize, addr: usize) -> MapEntry {
+        MapEntry {
+            source: source.clone(),
+            offset,
+            span,
+            addr,
+        }
+    }
+}
+
 /// An address space.
 pub struct AddressSpace {
     name: String,
-    mappings: LinkedList<MapEntry>, // see below for comments
+    mappings: Vec<MapEntry>, // see below for comments
 }
 
 // comments about storing mappings
@@ -34,21 +48,42 @@ impl AddressSpace {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            mappings: LinkedList::new(),
-        }
+            mappings: Vec::new(), // <- here I changed from LinkedList, for reasons
+        } // I encourage you to try other sparse representations - trees, DIY linked lists, ...
     }
 
     /// Add a mapping from a `DataSource` into this `AddressSpace`.
     ///
     /// # Errors
     /// If the desired mapping is invalid.
-    pub fn add_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    /// TODO: how does our test in lib.rs succeed?
+    // pub fn add_mapping<'a, D: DataSource + 'a>(
+    //     &'a mut self,
+    pub fn add_mapping<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         offset: usize,
         span: usize,
     ) -> Result<VirtualAddress, &str> {
-        todo!()
+        let mut addr_iter = PAGE_SIZE; // let's not map page 0
+        let mut gap;
+        for mapping in &self.mappings {
+            gap = mapping.addr - addr_iter;
+            if gap > span + 2 * PAGE_SIZE {
+                break;
+            }
+            addr_iter = mapping.addr + mapping.span;
+        }
+        if addr_iter + span + 2 * PAGE_SIZE < VADDR_MAX {
+            let mapping_addr = addr_iter + PAGE_SIZE;
+            let new_mapping = MapEntry::new(source, offset, span, mapping_addr);
+            self.mappings.push(new_mapping);
+            self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+            // add this mapping self.mappings.Ok(addr_iter)
+            // then sort our vector
+            return Ok(mapping_addr);
+        }
+        return Err("out of address space!");
     }
 
     /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
@@ -57,7 +92,7 @@ impl AddressSpace {
     /// If there is insufficient room subsequent to `start`.
     pub fn add_mapping_at<D: DataSource>(
         &self,
-        source: &D,
+        source: Arc<D>,
         offset: usize,
         span: usize,
         start: VirtualAddress,
@@ -71,7 +106,7 @@ impl AddressSpace {
     /// If the mapping could not be removed.
     pub fn remove_mapping<D: DataSource>(
         &self,
-        source: &D,
+        source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
         todo!()
@@ -79,15 +114,20 @@ impl AddressSpace {
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
-    ) -> Result<(&D, usize), &str> {
+        access_type: FlagBuilder,
+    ) -> Result<(Arc<D>, usize), &str> {
+        todo!();
+    }
+
+    /// Helper function for looking up mappings
+    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<MapEntry, &str> {
         todo!();
     }
 }
@@ -218,4 +258,3 @@ impl FlagBuilder {
         }
     }
 }
-
