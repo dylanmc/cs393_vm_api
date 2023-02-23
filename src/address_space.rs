@@ -99,18 +99,7 @@ impl AddressSpace {
         start: VirtualAddress,
         flags: FlagBuilder
     ) -> Result<(), &str> {
-        for mapping in &self.mappings {
-            if start + span < mapping.addr
-                || start + span > mapping.addr + mapping.span {
-                    continue;
-                } else {
-                    return Err("overlapping mapping");
-                }
-        }
-        let new_mapping = MapEntry::new(source, offset, span, start, flags);
-        self.mappings.push(new_mapping);
-        self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
-        Ok(())
+        todo!()
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
