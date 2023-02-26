@@ -113,7 +113,33 @@ impl AddressSpace {
         start: VirtualAddress,
         flags: FlagBuilder,
     ) -> Result<(), &str> {
-        todo!()
+        let adjusted_span: usize = span + PAGE_SIZE - (span % PAGE_SIZE);
+        let end = start + adjusted_span;
+        for mapping in &self.mappings {
+            if mapping.addr + mapping.span < start {
+                // we have not reached the area we need yet
+                continue;
+            } else if start + adjusted_span < mapping.addr {
+                // we've moved past the area we need
+                break;
+            } else if start <= mapping.addr && mapping.addr <= start + adjusted_span {
+                // there is a mapping that starts in the space we want to place the new mapping
+                return Err("out of address space!");
+            } else if start <= mapping.addr + mapping.span
+                && mapping.addr + mapping.span <= start + adjusted_span
+            {
+                // there is a mapping that ends in the space we want to place the new mapping
+                return Err("out of address space!");
+            } else if mapping.addr < start && start + adjusted_span < mapping.addr + mapping.span {
+                // there is a mapping covers the space we want to place the new mapping
+                return Err("out of address space!");
+            }
+        }
+        // if we have enough space for our new mapping
+        let new_mapping = MapEntry::new(source, offset, adjusted_span, start, flags);
+        self.mappings.push(new_mapping);
+        self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+        return Ok(());
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
