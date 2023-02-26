@@ -12,12 +12,18 @@ struct MapEntry {
     offset: usize,
     span: usize,
     addr: usize,
-    flags: FlagBuilder
+    flags: FlagBuilder,
 }
 
 impl MapEntry {
     #[must_use] // <- not using return value of "new" doesn't make sense, so warn
-    pub fn new(source: Arc<dyn DataSource>, offset: usize, span: usize, addr: usize, flags: FlagBuilder) -> MapEntry {
+    pub fn new(
+        source: Arc<dyn DataSource>,
+        offset: usize,
+        span: usize,
+        addr: usize,
+        flags: FlagBuilder,
+    ) -> MapEntry {
         MapEntry {
             source: source.clone(),
             offset,
@@ -70,16 +76,29 @@ impl AddressSpace {
     ) -> Result<VirtualAddress, &str> {
         let mut addr_iter = PAGE_SIZE; // let's not map page 0
         let mut gap;
+        let adjusted_span: usize;
+        if span % PAGE_SIZE != 0 {
+            adjusted_span = PAGE_SIZE - (PAGE_SIZE % span);
+        } else {
+            adjusted_span = span
+        }
         for mapping in &self.mappings {
+            // space between end of last entry and start of this entry
             gap = mapping.addr - addr_iter;
-            if gap > span + 2 * PAGE_SIZE {
+            // we found a big free space!
+            // need to have a free page between each mapping
+            // for accidental overflows
+            if gap > adjusted_span + 2 * PAGE_SIZE {
                 break;
             }
+            // move addr_iter to the next potentially free chunk of memory
             addr_iter = mapping.addr + mapping.span;
         }
-        if addr_iter + span + 2 * PAGE_SIZE < VADDR_MAX {
+        // if we have enough space for our new mapping
+        if addr_iter + adjusted_span + 2 * PAGE_SIZE < VADDR_MAX {
+            // add free page between mappings
             let mapping_addr = addr_iter + PAGE_SIZE;
-            let new_mapping = MapEntry::new(source, offset, span, mapping_addr, flags);
+            let new_mapping = MapEntry::new(source, offset, adjusted_span, mapping_addr, flags);
             self.mappings.push(new_mapping);
             self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
             return Ok(mapping_addr);
@@ -97,7 +116,7 @@ impl AddressSpace {
         offset: usize,
         span: usize,
         start: VirtualAddress,
-        flags: FlagBuilder
+        flags: FlagBuilder,
     ) -> Result<(), &str> {
         todo!()
     }
@@ -160,17 +179,21 @@ pub struct FlagBuilder {
 
 impl FlagBuilder {
     pub fn check_access_perms(&self, access_perms: FlagBuilder) -> bool {
-        if access_perms.read && !self.read || access_perms.write && !self.write || access_perms.execute && !self.execute {
+        if access_perms.read && !self.read
+            || access_perms.write && !self.write
+            || access_perms.execute && !self.execute
+        {
             return false;
-        }    
-        true    
+        }
+        true
     }
 
     pub fn is_valid(&self) -> bool {
         if self.private && self.shared {
             return false;
         }
-        if self.cow && self.write { // for COW to work, write needs to be off until after the copy
+        if self.cow && self.write {
+            // for COW to work, write needs to be off until after the copy
             return false;
         }
         return true;
