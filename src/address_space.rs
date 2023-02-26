@@ -97,12 +97,17 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If the mapping could not be removed.
-    pub fn remove_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn remove_mapping<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        if start < VADDR_MAX {
+            if let Ok(mapping_index) = self.get_mapping_index_for_addr(start) {
+                self.mappings.remove(mapping_index);
+            }
+        }
+        return Err("cannot remove the mapping!");
     }
 
     /// Look up the DataSource and offset within that DataSource for a
@@ -117,6 +122,21 @@ impl AddressSpace {
         access_type: FlagBuilder
     ) -> Result<(&D, usize), &str> {
         todo!();
+    }
+
+    /// Helper function for looking up mapping index
+    fn get_mapping_index_for_addr(
+        &self,
+        addr: VirtualAddress
+    ) -> Result<usize, &str> {
+        if addr < VADDR_MAX {
+            for (i, mapping) in self.mappings.iter().enumerate() {
+                if mapping.addr == addr {
+                    return Ok(i);
+                }
+            }
+        }
+        return Err("address is out of bounds!");
     }
 }
 
