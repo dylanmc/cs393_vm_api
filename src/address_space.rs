@@ -1,7 +1,9 @@
-use std::collections::LinkedList;
 use std::sync::Arc;
 
 use crate::data_source::DataSource;
+
+pub const PAGE_SIZE: usize = 4096;
+pub const VADDR_MAX: usize = (1 << 38) - 1;
 
 type VirtualAddress = usize;
 
@@ -12,29 +14,30 @@ struct MapEntry {
     addr: usize,
 }
 
+impl MapEntry {
+    #[must_use]
+    pub fn new(source: Arc<dyn DataSource>, offset: usize, span: usize, addr: usize) -> MapEntry {
+        MapEntry {
+            source: source.clone(),
+            offset,
+            span,
+            addr,
+        }
+    }
+}
+
 /// An address space.
 pub struct AddressSpace {
     name: String,
-    mappings: LinkedList<MapEntry>, // see below for comments
+    mappings: Vec<MapEntry>
 }
-
-// comments about storing mappings
-// Most OS code uses doubly-linked lists to store sparse data structures like
-// an address space's mappings.
-// Using Rust's built-in LinkedLists is fine. See https://doc.rust-lang.org/std/collections/struct.LinkedList.html
-// But if you really want to get the zen of Rust, this is a really good read, written by the original author
-// of that very data structure: https://rust-unofficial.github.io/too-many-lists/
-
-// So, feel free to come up with a different structure, either a classic Rust collection,
-// from a crate (but remember it needs to be #no_std compatible), or even write your own.
-// See this ticket from Riley: https://github.com/dylanmc/cs393_vm_api/issues/10
 
 impl AddressSpace {
     #[must_use]
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            mappings: LinkedList::new(),
+            mappings: Vec::new(),
         }
     }
 
@@ -42,13 +45,31 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If the desired mapping is invalid.
-    pub fn add_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn add_mapping<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         offset: usize,
         span: usize,
     ) -> Result<VirtualAddress, &str> {
-        todo!()
+        let mut addr_iter = PAGE_SIZE;
+        let mut gap;
+        // find the free address by incrementing addr_iter
+        for mapping in &self.mappings {
+            gap = mapping.addr - addr_iter;
+            if gap > span + 2 * PAGE_SIZE {
+                break;
+            }
+            addr_iter = mapping.addr + mapping.span;
+        }
+        if addr_iter + span + 2 * PAGE_SIZE < VADDR_MAX {
+            // compute the address for the new mapping
+            let mapping_addr = addr_iter + PAGE_SIZE;
+            let new_mapping = MapEntry::new(source, offset, span, mapping_addr);
+            self.mappings.push(new_mapping);
+            self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+            return Ok(mapping_addr);
+        }
+        return Err("out of address space!");
     }
 
     /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
@@ -218,4 +239,3 @@ impl FlagBuilder {
         }
     }
 }
-

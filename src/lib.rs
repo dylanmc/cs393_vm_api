@@ -23,13 +23,13 @@ mod tests {
     // test if mapping has been added
     #[test]
     fn test_add_mapping() {
-        let addr_space = AddressSpace::new("Test address space");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
 
-        let addr = addr_space.add_mapping(&data_source, offset, length).unwrap();
-        assert!(addr != 0);
+        let addr = addr_space.add_mapping(data_source.into(), offset, length).unwrap();
+        assert_ne!(addr, 0);
 
         // we should move these tests into addr_space, since they access non-public internals of the structure:
         // assert_eq!(addr_space.mappings.is_empty(), false);
