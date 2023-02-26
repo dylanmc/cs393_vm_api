@@ -76,12 +76,7 @@ impl AddressSpace {
     ) -> Result<VirtualAddress, &str> {
         let mut addr_iter = PAGE_SIZE; // let's not map page 0
         let mut gap;
-        let adjusted_span: usize;
-        if span % PAGE_SIZE != 0 {
-            adjusted_span = PAGE_SIZE - (PAGE_SIZE % span);
-        } else {
-            adjusted_span = span
-        }
+        let adjusted_span: usize = span + PAGE_SIZE - (span % PAGE_SIZE);
         for mapping in &self.mappings {
             // space between end of last entry and start of this entry
             gap = mapping.addr - addr_iter;
