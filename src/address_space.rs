@@ -29,7 +29,7 @@ impl MapEntry {
 /// An address space.
 pub struct AddressSpace {
     name: String,
-    mappings: Vec<MapEntry>
+    mappings: Vec<MapEntry>,
 }
 
 impl AddressSpace {
@@ -112,29 +112,28 @@ impl AddressSpace {
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
-    pub fn get_source_for_addr<D: DataSource>(
+    pub fn get_source_for_addr(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
-    ) -> Result<(&D, usize), &str> {
-        todo!();
+        access_type: FlagBuilder,
+    ) -> Result<Arc<(dyn DataSource + 'static)>, &str> {
+        if addr < VADDR_MAX {
+            self.mappings
+                .iter()
+                .find(|m| m.addr == addr)
+                .map(|m| m.source.clone());
+        }
+        return Err("address is out of bounds!");
     }
 
     /// Helper function for looking up mapping index
-    fn get_mapping_index_for_addr(
-        &self,
-        addr: VirtualAddress
-    ) -> Result<usize, &str> {
+    fn get_mapping_index_for_addr(&self, addr: VirtualAddress) -> Result<usize, &str> {
         if addr < VADDR_MAX {
-            for (i, mapping) in self.mappings.iter().enumerate() {
-                if mapping.addr == addr {
-                    return Ok(i);
-                }
-            }
+            self.mappings.iter().position(|m| m.addr == addr);
         }
         return Err("address is out of bounds!");
     }

@@ -10,6 +10,7 @@ pub use data_source::{DataSource, FileDataSource};
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::address_space::FlagBuilder;
 
     #[test]
     fn constructors() {
@@ -28,7 +29,9 @@ mod tests {
         let offset: usize = 0;
         let length: usize = 1;
 
-        let addr = addr_space.add_mapping(data_source.into(), offset, length).unwrap();
+        let addr = addr_space
+            .add_mapping(data_source.into(), offset, length)
+            .unwrap();
         assert_ne!(addr, 0);
 
         // we should move these tests into addr_space, since they access non-public internals of the structure:
@@ -51,5 +54,20 @@ mod tests {
         // not sure how to test that the specific mapping was filled since we are not allowed to
         // test the internals of the address space...
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_get_source_for_addr() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+
+        let addr = addr_space
+            .add_mapping(data_source.into(), offset, length)
+            .unwrap();
+        let source = addr_space.get_source_for_addr(addr, FlagBuilder::read());
+        // again, how do we check the name?
+        assert!(source.is_ok());
     }
 }
