@@ -76,14 +76,21 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If there is insufficient room subsequent to `start`.
-    pub fn add_mapping_at<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn add_mapping_at<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         offset: usize,
         span: usize,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        if start + span + 2 * PAGE_SIZE < VADDR_MAX {
+            let mapping_addr = start + PAGE_SIZE;
+            let new_mapping = MapEntry::new(source, offset, span, mapping_addr);
+            self.mappings.push(new_mapping);
+            self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+            return Ok(());
+        }
+        return Err("out of address space!");
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.

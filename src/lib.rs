@@ -37,4 +37,19 @@ mod tests {
         // assert_eq!(addr_space.mappings.front().offset, offset);
         // assert_eq!(addr_space.mappings.front().span, length);
     }
+
+    // test if mapping has been added at 4097
+    #[test]
+    fn test_add_mapping_at_4097() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let desired_addr: usize = 4097;
+
+        let result = addr_space.add_mapping_at(data_source.into(), offset, length, desired_addr);
+        // not sure how to test that the specific mapping was filled since we are not allowed to
+        // test the internals of the address space...
+        assert!(result.is_ok());
+    }
 }
