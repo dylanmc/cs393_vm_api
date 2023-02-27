@@ -147,11 +147,17 @@ impl AddressSpace {
     /// # Errors
     /// If the mapping could not be removed.
     pub fn remove_mapping<D: DataSource>(
-        &self,
+        &mut self,
         source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        // To-Do deal w source
+        let s = &self.mappings.len();
+        let _ = &self.mappings.retain(|m| m.addr != start);
+        if self.mappings.len() != s - 1 {
+            return Err("error removing mapping");
+        }
+        return Ok(());
     }
 
     /// Look up the DataSource and offset within that DataSource for a
@@ -165,7 +171,24 @@ impl AddressSpace {
         addr: VirtualAddress,
         access_type: FlagBuilder,
     ) -> Result<(Arc<D>, usize), &str> {
-        todo!();
+        for mapping in &self.mappings {
+            if mapping.addr + mapping.span < addr {
+                // we have not reached the area we need yet
+                continue;
+            } else if mapping.addr <= addr && addr <= mapping.addr + mapping.span {
+                // the address we are looking for is the in range of this data source
+                if mapping.flags.private || !mapping.flags.read {
+                    // we do not have access
+                    return Err("Access Type is not permitted by the mapping!");
+                } else {
+                    return Ok((mapping.source, mapping.offset));
+                }
+            } else if addr < mapping.addr {
+                // we passed the address we were looking for and found nothing
+                return Err("VirtualAddress does not a valid mapping!");
+            }
+        }
+        return return Err("VirtualAddress does not a valid mapping!");
     }
 
     /// Helper function for looking up mappings
