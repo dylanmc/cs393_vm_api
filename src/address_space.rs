@@ -180,11 +180,11 @@ impl AddressSpace {
         addr: VirtualAddress,
         access_type: FlagBuilder,
     ) -> Result<(Arc<dyn DataSource>, usize), &str> {
-        let mapping = self.get_mapping_for_addr(addr).unwrap();
-        if !mapping.flags.read {
+        if !access_type.read {
             // we do not have access
             return Err("Access Type is not permitted by the mapping!");
         } else {
+            let mapping = self.get_mapping_for_addr(addr).unwrap();
             let offset = mapping.offset + addr;
             return Ok((mapping.source.clone(), offset));
         }
@@ -192,7 +192,7 @@ impl AddressSpace {
 
     /// Helper function for looking up mappings
     fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<&MapEntry, &str> {
-        // tells you if there is an existsing mapping at a giving addr
+        // tells you if there is an existing mapping at a giving addr
         // todo!();
         for mapping in &self.mappings {
             if mapping.addr + mapping.span < addr {
