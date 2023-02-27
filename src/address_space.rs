@@ -136,7 +136,7 @@ impl AddressSpace {
             }
         }
         // if we have enough space for our new mapping
-        let new_mapping = MapEntry::new(source, offset, adjusted_span, start, flags);
+        let new_mapping = MapEntry::new(source.clone(), offset, adjusted_span, start, flags);
         self.mappings.push(new_mapping);
         self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
         return Ok(());
@@ -151,12 +151,13 @@ impl AddressSpace {
         source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        // To-Do deal w source
+        let mapping = self.get_mapping_for_addr(start).unwrap();
         let s = &self.mappings.len();
-        let _ = &self.mappings.retain(|m| m.addr != start);
+        self.mappings.retain(|m| m != mapping);
         if self.mappings.len() != s - 1 {
             return Err("error removing mapping");
         }
+        drop(source);
         return Ok(());
     }
 
@@ -166,34 +167,40 @@ impl AddressSpace {
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
+    /// access is read,write,and execute
+    /// private vs cow vs shared is about cache sharing
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
         access_type: FlagBuilder,
-    ) -> Result<(Arc<D>, usize), &str> {
+    ) -> Result<(Arc<dyn DataSource>, usize), &str> {
+        let mapping = self.get_mapping_for_addr(addr).unwrap();
+        if !mapping.flags.read {
+            // we do not have access
+            return Err("Access Type is not permitted by the mapping!");
+        } else {
+            let offset = mapping.offset + addr;
+            return Ok((mapping.source.clone(), offset));
+        }
+    }
+
+    /// Helper function for looking up mappings
+    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<&MapEntry, &str> {
+        // tells you if there is an existsing mapping at a giving addr
+        // todo!();
         for mapping in &self.mappings {
             if mapping.addr + mapping.span < addr {
                 // we have not reached the area we need yet
                 continue;
             } else if mapping.addr <= addr && addr <= mapping.addr + mapping.span {
                 // the address we are looking for is the in range of this data source
-                if mapping.flags.private || !mapping.flags.read {
-                    // we do not have access
-                    return Err("Access Type is not permitted by the mapping!");
-                } else {
-                    return Ok((mapping.source, mapping.offset));
-                }
+                return Ok(mapping);
             } else if addr < mapping.addr {
                 // we passed the address we were looking for and found nothing
                 return Err("VirtualAddress does not a valid mapping!");
             }
         }
-        return return Err("VirtualAddress does not a valid mapping!");
-    }
-
-    /// Helper function for looking up mappings
-    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<MapEntry, &str> {
-        todo!();
+        return Err("VirtualAddress does not a valid mapping!");
     }
 }
 
