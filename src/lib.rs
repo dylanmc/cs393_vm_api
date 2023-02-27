@@ -67,7 +67,7 @@ mod tests {
     // test if mapping has been added
     #[test]
     fn test_add_mapping_at() {
-        let mut addr_space = AddressSpace::new("Test address space 1");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_add_mapping_at_error() {
-        let mut addr_space = AddressSpace::new("Test address space for errors 1");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_add_mapping_at_error_access() {
-        let mut addr_space = AddressSpace::new("Test address space for errors 2");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
@@ -118,5 +118,38 @@ mod tests {
         let addr = addr_space
             .add_mapping_at(ds_arc.clone(), offset, length, start, flags)
             .unwrap();
+    }
+
+    // test remove mapping
+    #[test]
+    #[should_panic]
+    fn test_remove_mapping() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 100;
+        let read_flags = FlagBuilder::new().toggle_read();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .unwrap();
+
+        let res = addr_space.remove_mapping(ds_arc.clone(), start).unwrap();
+    }
+
+    // test removing a file from an empty address space
+    #[test]
+    #[should_panic]
+    fn test_remove_mapping_error() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let start: usize = PAGE_SIZE;
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space.remove_mapping(ds_arc.clone(), start).unwrap();
     }
 }
