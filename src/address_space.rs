@@ -16,6 +16,7 @@ struct MapEntry {
 }
 
 impl MapEntry {
+    // define PartialEq
     #[must_use] // <- not using return value of "new" doesn't make sense, so warn
     pub fn new(
         source: Arc<dyn DataSource>,
@@ -153,7 +154,12 @@ impl AddressSpace {
     ) -> Result<(), &str> {
         let mapping = self.get_mapping_for_addr(start).unwrap();
         let s = &self.mappings.len();
-        self.mappings.retain(|m| m != mapping);
+
+        if let Some(pos) = self.mappings.iter().position(|x| x == mapping) {
+            self.mappings.remove(pos);
+        } else {
+            return Err("error removing mapping");
+        }
         if self.mappings.len() != s - 1 {
             return Err("error removing mapping");
         }
