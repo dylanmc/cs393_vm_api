@@ -11,6 +11,8 @@ use std::sync::Arc; // <- will have to make Arc ourselves for #no_std
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use crate::address_space::PAGE_SIZE;
 
     use super::*;
@@ -54,7 +56,7 @@ mod tests {
         let mut addr_space = AddressSpace::new("Test address space for errors");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
-        let length: usize = (1 << 38);
+        let length: usize = 1 << 38;
         let read_flags = FlagBuilder::new().toggle_read();
 
         let ds_arc = Arc::new(data_source);
@@ -102,27 +104,8 @@ mod tests {
             .unwrap();
     }
 
-    // test adding a file without read permissions
-    #[test]
-    #[should_panic]
-    fn test_add_mapping_at_error_access() {
-        let mut addr_space = AddressSpace::new("Test address space");
-        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
-        let offset: usize = 0;
-        let length: usize = 1;
-        let start: usize = 2 * PAGE_SIZE;
-        let flags = FlagBuilder::new();
-
-        let ds_arc = Arc::new(data_source);
-
-        let addr = addr_space
-            .add_mapping_at(ds_arc.clone(), offset, length, start, flags)
-            .unwrap();
-    }
-
     // test remove mapping
     #[test]
-    #[should_panic]
     fn test_remove_mapping() {
         let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
@@ -151,5 +134,27 @@ mod tests {
         let ds_arc = Arc::new(data_source);
 
         let addr = addr_space.remove_mapping(ds_arc.clone(), start).unwrap();
+    }
+
+    // test adding a file without read permissions
+    #[test]
+    #[should_panic]
+    fn test_get_source_for_addr_error_access() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 2 * PAGE_SIZE;
+        let flags = FlagBuilder::new();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, flags)
+            .unwrap();
+
+        let mapping = addr_space
+            .get_source_for_addr::<FileDataSource>(start, flags)
+            .unwrap();
     }
 }
