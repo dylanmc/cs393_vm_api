@@ -111,11 +111,12 @@ mod tests {
         let offset: usize = 0;
         let length: usize = 1;
         let start: usize = 2 * PAGE_SIZE;
+        let flags = FlagBuilder::new();
 
         let ds_arc = Arc::new(data_source);
 
         let addr = addr_space
-            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .add_mapping_at(ds_arc.clone(), offset, length, start, flags)
             .unwrap();
     }
 }
