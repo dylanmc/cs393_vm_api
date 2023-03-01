@@ -71,8 +71,8 @@ impl AddressSpace {
         let mut addr_iter = PAGE_SIZE; // let's not map page 0
         let mut gap;
         for mapping in &self.mappings {
-            gap = mapping.addr - addr_iter;
-            if gap > span + 2 * PAGE_SIZE {
+            gap = mapping.addr - addr_iter; // space between 
+            if gap > span + 2 * PAGE_SIZE { // this means there is space
                 break;
             }
             addr_iter = mapping.addr + mapping.span;
@@ -91,6 +91,7 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If there is insufficient room subsequent to `start`.
+    /// 
     pub fn add_mapping_at<D: DataSource + 'static>(
         &mut self,
         source: Arc<D>,
@@ -99,7 +100,16 @@ impl AddressSpace {
         start: VirtualAddress,
         flags: FlagBuilder
     ) -> Result<(), &str> {
-        todo!()
+        // do not need go through the work of finding available space
+        // just test whether start address given is valid for datasource to be mapped to
+        if start + span + 2 * PAGE_SIZE < VADDR_MAX {
+            let mapping_addr = start + PAGE_SIZE;
+            let new_mapping = MapEntry::new(source, offset, span, mapping_addr, flags);
+            self.mappings.push(new_mapping);
+            self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+            return Ok(());
+        }
+        Err("out of address space!")
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
@@ -107,11 +117,16 @@ impl AddressSpace {
     /// # Errors
     /// If the mapping could not be removed.
     pub fn remove_mapping<D: DataSource>(
-        &self,
+        &mut self,
         source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        if start < VADDR_MAX {
+            let index = self.mappings.iter().position(|r| r.addr == start).unwrap();
+            self.mappings.remove(index);
+            return Ok(());
+        }
+        Err("out of address space!")
     }
 
     /// Look up the DataSource and offset within that DataSource for a
@@ -124,13 +139,25 @@ impl AddressSpace {
         &self,
         addr: VirtualAddress,
         access_type: FlagBuilder,
-    ) -> Result<(Arc<D>, usize), &str> {
-        todo!();
+    ) -> Result<(Arc<dyn DataSource>, usize), &str> {
+        if addr > VADDR_MAX {
+            if let Ok(mapping) = self.get_mapping_for_addr(addr) {
+                return Ok((mapping.source.clone(), mapping.offset));
+            }
+        }
+        Err("out of address space!")
     }
 
     /// Helper function for looking up mappings
-    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<MapEntry, &str> {
-        todo!();
+    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<&MapEntry, &str> {
+        if addr > VADDR_MAX {
+            for mapping in &self.mappings {
+                if mapping.addr == addr {
+                    return Ok(mapping);
+                } 
+            }
+        }
+        Err("out of address space!")
     }
 }
 
