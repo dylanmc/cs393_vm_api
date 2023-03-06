@@ -3,11 +3,21 @@ use std::sync::Arc;
 
 use crate::data_source::DataSource;
 
+const SPACE: usize = 2usize.pow(27) - 1;
+
+const PAGE: usize = 4096;
+
 type VirtualAddress = usize;
 
-struct MapEntry {
+#[derive(Clone)]
+struct DataView {
     source: Arc<dyn DataSource>,
     offset: usize,
+}
+
+#[derive(Clone)]
+struct MapEntry {
+    content: Option<DataView>,
     span: usize,
     addr: usize,
 }
@@ -32,37 +42,113 @@ pub struct AddressSpace {
 impl AddressSpace {
     #[must_use]
     pub fn new(name: &str) -> Self {
-        Self {
+        let mut s = Self {
             name: name.to_string(),
             mappings: LinkedList::new(),
-        }
+        };
+        s.mappings.push_back(MapEntry {
+            content: None,
+            span: (SPACE / PAGE - 2) * PAGE,
+            addr: PAGE,
+        });
+        s
     }
 
     /// Add a mapping from a `DataSource` into this `AddressSpace`.
     ///
     /// # Errors
     /// If the desired mapping is invalid.
-    pub fn add_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn add_mapping<D: DataSource + 'static>(
+        &mut self,
+        source: D,
         offset: usize,
         span: usize,
     ) -> Result<VirtualAddress, &str> {
-        todo!()
+        let fullspan = PAGE * ((span - 1) / PAGE + 1);
+        let mut c = self.mappings.cursor_front_mut();
+        loop {
+            let node = c.current().cloned();
+            match node {
+                Some(entry) => {
+                    if entry.content.is_none() && entry.span >= fullspan {
+                        let leftover = entry.span - fullspan;
+                        c.insert_before(MapEntry {
+                            content: Some(DataView {
+                                source: Arc::new(source),
+                                offset,
+                            }),
+                            span: fullspan,
+                            addr: entry.addr,
+                        });
+                        if leftover >= PAGE {
+                            c.insert_before(MapEntry { 
+                                content: None, 
+                                span: leftover - PAGE, 
+                                addr: entry.addr + fullspan + PAGE, 
+                            })
+                        }
+                        c.remove_current();
+                        return Ok(entry.addr);
+                    } else {
+                        c.move_next();
+                    }
+                }
+                None => return Err("no available mappings of that size."),
+            }
+        }
     }
 
     /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
     ///
     /// # Errors
     /// If there is insufficient room subsequent to `start`.
-    pub fn add_mapping_at<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn add_mapping_at<D: DataSource + 'static>(
+        &mut self,
+        source: D,
         offset: usize,
         span: usize,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        let fullspan = PAGE * ((span - 1) / PAGE + 1);
+        let mut c = self.mappings.cursor_front_mut();
+        loop {
+            let node = c.current().cloned();
+            match node {
+                Some(entry) => {
+                    if entry.content.is_none() && start >= entry.addr && entry.addr + entry.span - start >= fullspan {
+                        let before = start - entry.span;
+                        let leftover = entry.addr + entry.span - start - fullspan;
+                        if before >= PAGE {
+                            c.insert_before(MapEntry { 
+                                content: None, 
+                                span: before - PAGE, 
+                                addr: entry.addr, 
+                            })
+                        }
+                        c.insert_before(MapEntry {
+                            content: Some(DataView {
+                                source: Arc::new(source),
+                                offset,
+                            }),
+                            span: fullspan,
+                            addr: start,
+                        });
+                        if leftover >= PAGE {
+                            c.insert_before(MapEntry { 
+                                content: None, 
+                                span: leftover - PAGE, 
+                                addr: start + fullspan + PAGE, 
+                            })
+                        }
+                        c.remove_current();
+                        return Ok(());
+                    } else {
+                        c.move_next();
+                    }
+                }
+                None => return Err("no available mapping at that address."),
+            }
+        }
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
@@ -79,14 +165,14 @@ impl AddressSpace {
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
+        access_type: FlagBuilder,
     ) -> Result<(&D, usize), &str> {
         todo!();
     }
@@ -218,4 +304,3 @@ impl FlagBuilder {
         }
     }
 }
-
