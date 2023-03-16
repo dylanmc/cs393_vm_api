@@ -4,11 +4,17 @@ mod address_space;
 mod cacher;
 mod data_source;
 
-pub use address_space::AddressSpace;
+pub use address_space::{AddressSpace, FlagBuilder};
 pub use data_source::{DataSource, FileDataSource};
+use std::sync::Arc; // <- will have to make Arc ourselves for #no_std
+                    // TODO: why does rustfmt say this is unused, but if I leave it out, undefined?
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
+    use crate::address_space::PAGE_SIZE;
+
     use super::*;
 
     #[test]
@@ -23,18 +29,132 @@ mod tests {
     // test if mapping has been added
     #[test]
     fn test_add_mapping() {
-        let addr_space = AddressSpace::new("Test address space");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;
+        let read_flags = FlagBuilder::new().toggle_read();
 
-        let addr = addr_space.add_mapping(&data_source, offset, length).unwrap();
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping(ds_arc.clone(), offset, length, read_flags)
+            .unwrap();
         assert!(addr != 0);
 
-        // we should move these tests into addr_space, since they access non-public internals of the structure:
-        // assert_eq!(addr_space.mappings.is_empty(), false);
-        // assert_eq!(addr_space.mappings.front().source, Some(&data_source));
-        // assert_eq!(addr_space.mappings.front().offset, offset);
-        // assert_eq!(addr_space.mappings.front().span, length);
+        let addr2 = addr_space
+            .add_mapping(ds_arc.clone(), address_space::PAGE_SIZE, 0, read_flags)
+            .unwrap();
+        assert!(addr2 != 0);
+        assert!(addr2 != addr);
+    }
+
+    // test running out of address space
+    #[test]
+    #[should_panic]
+    fn test_add_mapping_error() {
+        let mut addr_space = AddressSpace::new("Test address space for errors");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1 << 38;
+        let read_flags = FlagBuilder::new().toggle_read();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping(ds_arc.clone(), offset, length, read_flags)
+            .unwrap();
+    }
+
+    // test if mapping has been added
+    #[test]
+    fn test_add_mapping_at() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 100;
+        let read_flags = FlagBuilder::new().toggle_read();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .unwrap();
+    }
+
+    // test adding multiple files to the same VA
+    #[test]
+    #[should_panic]
+    fn test_add_mapping_at_error() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 2 * PAGE_SIZE;
+        let read_flags = FlagBuilder::new().toggle_read();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .unwrap();
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .unwrap();
+    }
+
+    // test remove mapping
+    #[test]
+    fn test_remove_mapping() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 100;
+        let read_flags = FlagBuilder::new().toggle_read();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, read_flags)
+            .unwrap();
+
+        let res = addr_space.remove_mapping(ds_arc.clone(), start).unwrap();
+    }
+
+    // test removing a file from an empty address space
+    #[test]
+    #[should_panic]
+    fn test_remove_mapping_error() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let start: usize = PAGE_SIZE;
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space.remove_mapping(ds_arc.clone(), start).unwrap();
+    }
+
+    // test adding a file without read permissions
+    #[test]
+    #[should_panic]
+    fn test_get_source_for_addr_error_access() {
+        let mut addr_space = AddressSpace::new("Test address space");
+        let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
+        let offset: usize = 0;
+        let length: usize = 1;
+        let start: usize = 2 * PAGE_SIZE;
+        let flags = FlagBuilder::new();
+
+        let ds_arc = Arc::new(data_source);
+
+        let addr = addr_space
+            .add_mapping_at(ds_arc.clone(), offset, length, start, flags)
+            .unwrap();
+
+        let mapping = addr_space
+            .get_source_for_addr::<FileDataSource>(start, flags)
+            .unwrap();
     }
 }

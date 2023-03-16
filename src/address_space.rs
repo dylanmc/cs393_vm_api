@@ -1,7 +1,9 @@
-use std::collections::LinkedList;
 use std::sync::Arc;
 
 use crate::data_source::DataSource;
+
+pub const PAGE_SIZE: usize = 4096;
+pub const VADDR_MAX: usize = (1 << 38) - 1;
 
 type VirtualAddress = usize;
 
@@ -10,12 +12,33 @@ struct MapEntry {
     offset: usize,
     span: usize,
     addr: usize,
+    flags: FlagBuilder,
+}
+
+impl MapEntry {
+    // define PartialEq, this will be addr being the same
+    #[must_use] // <- not using return value of "new" doesn't make sense, so warn
+    pub fn new(
+        source: Arc<dyn DataSource>,
+        offset: usize,
+        span: usize,
+        addr: usize,
+        flags: FlagBuilder,
+    ) -> MapEntry {
+        MapEntry {
+            source: source.clone(),
+            offset,
+            span,
+            addr,
+            flags,
+        }
+    }
 }
 
 /// An address space.
 pub struct AddressSpace {
     name: String,
-    mappings: LinkedList<MapEntry>, // see below for comments
+    mappings: Vec<MapEntry>, // see below for comments
 }
 
 // comments about storing mappings
@@ -34,35 +57,90 @@ impl AddressSpace {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            mappings: LinkedList::new(),
-        }
+            mappings: Vec::new(), // <- here I changed from LinkedList, for reasons
+        } // I encourage you to try other sparse representations - trees, DIY linked lists, ...
     }
 
     /// Add a mapping from a `DataSource` into this `AddressSpace`.
     ///
     /// # Errors
     /// If the desired mapping is invalid.
-    pub fn add_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    /// TODO: how does our test in lib.rs succeed?
+    // pub fn add_mapping<'a, D: DataSource + 'a>(
+    //     &'a mut self,
+    pub fn add_mapping<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         offset: usize,
         span: usize,
+        flags: FlagBuilder,
     ) -> Result<VirtualAddress, &str> {
-        todo!()
+        let mut addr_iter = PAGE_SIZE; // let's not map page 0
+        let mut gap;
+        let adjusted_span: usize = span + PAGE_SIZE - (span % PAGE_SIZE);
+        for mapping in &self.mappings {
+            // space between end of last entry and start of this entry
+            gap = mapping.addr - addr_iter;
+            // we found a big free space!
+            // need to have a free page between each mapping
+            // for accidental overflows
+            if gap > adjusted_span + 2 * PAGE_SIZE {
+                break;
+            }
+            // move addr_iter to the next potentially free chunk of memory
+            addr_iter = mapping.addr + mapping.span;
+        }
+        // if we have enough space for our new mapping
+        if addr_iter + adjusted_span + 2 * PAGE_SIZE < VADDR_MAX {
+            // add free page between mappings
+            let mapping_addr = addr_iter + PAGE_SIZE;
+            let new_mapping = MapEntry::new(source, offset, adjusted_span, mapping_addr, flags);
+            self.mappings.push(new_mapping);
+            self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+            return Ok(mapping_addr);
+        }
+        Err("out of address space!")
     }
 
     /// Add a mapping from `DataSource` into this `AddressSpace` starting at a specific address.
     ///
     /// # Errors
     /// If there is insufficient room subsequent to `start`.
-    pub fn add_mapping_at<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn add_mapping_at<D: DataSource + 'static>(
+        &mut self,
+        source: Arc<D>,
         offset: usize,
         span: usize,
         start: VirtualAddress,
+        flags: FlagBuilder,
     ) -> Result<(), &str> {
-        todo!()
+        let adjusted_span: usize = span + PAGE_SIZE - (span % PAGE_SIZE);
+        let end = start + adjusted_span;
+        for mapping in &self.mappings {
+            if mapping.addr + mapping.span < start {
+                // we have not reached the area we need yet
+                continue;
+            } else if start + adjusted_span < mapping.addr {
+                // we've moved past the area we need
+                break;
+            } else if start <= mapping.addr && mapping.addr <= start + adjusted_span {
+                // there is a mapping that starts in the space we want to place the new mapping
+                return Err("out of address space!");
+            } else if start <= mapping.addr + mapping.span
+                && mapping.addr + mapping.span <= start + adjusted_span
+            {
+                // there is a mapping that ends in the space we want to place the new mapping
+                return Err("out of address space!");
+            } else if mapping.addr < start && start + adjusted_span < mapping.addr + mapping.span {
+                // there is a mapping covers the space we want to place the new mapping
+                return Err("out of address space!");
+            }
+        }
+        // if we have enough space for our new mapping
+        let new_mapping = MapEntry::new(source.clone(), offset, adjusted_span, start, flags);
+        self.mappings.push(new_mapping);
+        self.mappings.sort_by(|a, b| a.addr.cmp(&b.addr));
+        return Ok(());
     }
 
     /// Remove the mapping to `DataSource` that starts at the given address.
@@ -70,25 +148,65 @@ impl AddressSpace {
     /// # Errors
     /// If the mapping could not be removed.
     pub fn remove_mapping<D: DataSource>(
-        &self,
-        source: &D,
+        &mut self,
+        source: Arc<D>,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        let mapping = self.get_mapping_for_addr(start).unwrap();
+        let s = &self.mappings.len();
+
+        if let Some(pos) = self.mappings.iter().position(|x| x.addr == mapping.addr) {
+            self.mappings.remove(pos);
+        } else {
+            return Err("error removing mapping");
+        }
+        if self.mappings.len() != s - 1 {
+            return Err("error removing mapping");
+        }
+        drop(source);
+        return Ok(());
     }
 
     /// Look up the DataSource and offset within that DataSource for a
     /// VirtualAddress / AccessType in this AddressSpace
-    /// 
+    ///
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
+    /// access is read,write,and execute
+    /// private vs cow vs shared is about cache sharing
     pub fn get_source_for_addr<D: DataSource>(
         &self,
         addr: VirtualAddress,
-        access_type: FlagBuilder
-    ) -> Result<(&D, usize), &str> {
-        todo!();
+        access_type: FlagBuilder,
+    ) -> Result<(Arc<dyn DataSource>, usize), &str> {
+        if !access_type.read {
+            // we do not have access
+            return Err("Access Type is not permitted by the mapping!");
+        } else {
+            let mapping = self.get_mapping_for_addr(addr).unwrap();
+            let offset = mapping.offset + addr;
+            return Ok((mapping.source.clone(), offset));
+        }
+    }
+
+    /// Helper function for looking up mappings
+    fn get_mapping_for_addr(&self, addr: VirtualAddress) -> Result<&MapEntry, &str> {
+        // tells you if there is an existing mapping at a giving addr
+        // todo!();
+        for mapping in &self.mappings {
+            if mapping.addr + mapping.span < addr {
+                // we have not reached the area we need yet
+                continue;
+            } else if mapping.addr <= addr && addr <= mapping.addr + mapping.span {
+                // the address we are looking for is the in range of this data source
+                return Ok(mapping);
+            } else if addr < mapping.addr {
+                // we passed the address we were looking for and found nothing
+                return Err("VirtualAddress does not a valid mapping!");
+            }
+        }
+        return Err("VirtualAddress does not a valid mapping!");
     }
 }
 
@@ -116,6 +234,28 @@ pub struct FlagBuilder {
     shared: bool,
 }
 
+impl FlagBuilder {
+    pub fn check_access_perms(&self, access_perms: FlagBuilder) -> bool {
+        if access_perms.read && !self.read
+            || access_perms.write && !self.write
+            || access_perms.execute && !self.execute
+        {
+            return false;
+        }
+        true
+    }
+
+    pub fn is_valid(&self) -> bool {
+        if self.private && self.shared {
+            return false;
+        }
+        if self.cow && self.write {
+            // for COW to work, write needs to be off until after the copy
+            return false;
+        }
+        return true;
+    }
+}
 /// Create a constructor and toggler for a `FlagBuilder` object. Will capture attributes, including documentation
 /// comments and apply them to the generated constructor.
 macro_rules! flag {
@@ -218,4 +358,3 @@ impl FlagBuilder {
         }
     }
 }
-
