@@ -24,7 +24,7 @@ mod tests {
     // test if mapping has been added
     #[test]
     fn test_add_mapping() {
-        let addr_space = AddressSpace::new("Test address space");
+        let mut addr_space = AddressSpace::new("Test address space");
         let data_source: FileDataSource = FileDataSource::new("Cargo.toml").unwrap();
         let offset: usize = 0;
         let length: usize = 1;

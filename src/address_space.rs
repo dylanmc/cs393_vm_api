@@ -155,12 +155,40 @@ impl AddressSpace {
     ///
     /// # Errors
     /// If the mapping could not be removed.
-    pub fn remove_mapping<D: DataSource>(
-        &self,
-        source: &D,
+    pub fn remove_mapping(
+        &mut self,
         start: VirtualAddress,
     ) -> Result<(), &str> {
-        todo!()
+        let mut c = self.mappings.cursor_front_mut();
+        loop {
+            let node = c.current();
+            match node {
+                Some(entry) => {
+                    if entry.addr == start && entry.content.is_some() {
+                        let mut begin = entry.addr;
+                        let mut end = entry.addr + entry.span;
+                        c.move_prev();
+                        if let Some(e) = c.current() {
+                            begin = e.addr;
+                            c.remove_current();
+                        } else {
+                            c.move_next();
+                        }
+                        c.move_next();
+                        if let Some(e) = c.current() {
+                            end = e.addr + e.span;
+                            c.remove_current();
+                        } 
+                        c.move_prev();
+                        c.remove_current();
+                        c.insert_before(MapEntry { content: None, span: end - begin, addr: begin })
+                    } else {
+                        c.move_next()
+                    }
+                },
+                None => return Err("no mapping at that address."),
+            }
+        }
     }
 
     /// Look up the DataSource and offset within that DataSource for a
@@ -169,12 +197,27 @@ impl AddressSpace {
     /// # Errors
     /// If this VirtualAddress does not have a valid mapping in &self,
     /// or if this AccessType is not permitted by the mapping
-    pub fn get_source_for_addr<D: DataSource>(
+    pub fn get_source_for_addr(
         &self,
         addr: VirtualAddress,
         access_type: FlagBuilder,
-    ) -> Result<(&D, usize), &str> {
-        todo!();
+    ) -> Result<(&dyn DataSource, usize), &str> {
+        let mut c = self.mappings.cursor_front();
+        loop {
+            let node = c.current();
+            match node {
+                Some(entry) => {
+                    if entry.addr <= addr && addr <= entry.addr + entry.span {
+                        if let Some(&MapEntry { content: Some(DataView { ref source, offset }), span, addr }) = c.current().clone() {
+                            return Ok((source.as_ref(), offset + addr - entry.addr));
+                        }
+                    } else {
+                        c.move_next()
+                    }
+                },
+                None => return Err("no mapping at that address."),
+            }
+        }
     }
 }
 
