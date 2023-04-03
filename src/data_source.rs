@@ -3,13 +3,27 @@ use std::fs::File;
 pub trait DataSource {
     // constructors are left to each implementation, once you have one, you can:
     //
-    // TODO: instead of taking a `flagbuilder`, should we turn it into some kind of convenient
-    // format?
+    // TODO: instead of taking a `flagbuilder`,
+    // should we turn it into some kind of convenient format?
     //
     // TODO: add documentation for all these methods
     fn read(&self, offset: usize, length: usize, buffer: &mut [u8]) -> Result<(), &str>;
     fn write(&self, offset: usize, length: usize, buffer: &[u8]) -> Result<(), &str>;
     fn flush(&self, offset: usize, length: usize) -> Result<(), &str>;
+}
+
+pub struct NullDataSource {}
+
+impl DataSource for NullDataSource {
+    fn read(&self, offset: usize, length: usize, buffer: &mut [u8]) -> Result<(), &str> {
+        panic!()
+    }
+    fn write(&self, offset: usize, length: usize, buffer: &[u8]) -> Result<(), &str> {
+        panic!()
+    }
+    fn flush(&self, offset: usize, length: usize) -> Result<(), &str> {
+        panic!()
+    }
 }
 
 pub struct FileDataSource {
